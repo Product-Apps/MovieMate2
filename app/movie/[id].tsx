@@ -1,277 +1,151 @@
-import React from 'react';
-import { StyleSheet, ScrollView, View, Text, Image, Pressable, Linking, Dimensions } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SAMPLE_MOVIES } from '@/constants/Movies';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
+const TMDB_API_KEY = 'YOUR_TMDB_API_KEY';
 
-export default function MovieDetailsScreen() {
-  const router = useRouter();
-  const { id } = useLocalSearchParams();
+interface MovieDetails {
+  id: number;
+  title: string;
+  backdrop_path: string;
+  poster_path: string;
+  overview: string;
+  vote_average: number;
+  release_date: string;
+}
 
-  const movie = SAMPLE_MOVIES.find(m => m.id === parseInt(id as string));
+interface CastMember {
+  id: number;
+  name: string;
+  profile_path: string | null;
+}
+
+export default function MovieDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const colorScheme = useColorScheme();
+  const [movie, setMovie] = useState<MovieDetails | null>(null);
+  const [cast, setCast] = useState<CastMember[]>([]);
+
+  useEffect(() => {
+    fetchMovieDetails();
+  }, [id]);
+
+  const fetchMovieDetails = async (): Promise<void> => {
+    try {
+      const [movieRes, castRes] = await Promise.all([
+        fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_API_KEY}`),
+        fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${TMDB_API_KEY}`)
+      ]);
+      
+      const movieData = await movieRes.json();
+      const castData = await castRes.json();
+      
+      setMovie(movieData);
+      setCast(castData.cast?.slice(0, 10) || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   if (!movie) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Movie not found</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Go Back</Text>
-        </Pressable>
+      <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
+        <Text>Loading...</Text>
       </View>
     );
   }
 
-  const handleWatchTrailer = () => {
-    if (movie.trailer_link) {
-      Linking.openURL(movie.trailer_link);
-    }
-  };
-
-  const handleStreamingPress = (platform: string) => {
-    // In a real app, this would deep link to the streaming app
-    console.log(`Opening ${platform} for ${movie.title}`);
-  };
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={{ uri: movie.poster }}
-          style={styles.poster}
-          resizeMode="cover"
-        />
-        <View style={styles.movieInfo}>
-          <Text style={styles.title}>{movie.title}</Text>
-          <Text style={styles.year}>{movie.year}</Text>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.rating}>⭐ {movie.rating}</Text>
-            <Text style={styles.language}>{movie.language}</Text>
+    <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.backdrop}>
+          <Image
+            source={{ uri: `https://image.tmdb.org/t/p/original${movie.backdrop_path}` }}
+            style={styles.backdropImage}
+          />
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+            {movie.title}
+          </Text>
+          
+          <View style={styles.meta}>
+            <View style={styles.rating}>
+              <Ionicons name="star" size={20} color="#FCD34D" />
+              <Text style={styles.ratingText}>{movie.vote_average?.toFixed(1)}/10</Text>
+            </View>
+            <Text style={styles.year}>{movie.release_date?.substring(0, 4)}</Text>
           </View>
-        </View>
-      </View>
 
-      <View style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Plot</Text>
-          <Text style={styles.plot}>{movie.plot}</Text>
-        </View>
+          <View style={styles.buttons}>
+            <TouchableOpacity style={styles.playButton}>
+              <Ionicons name="play" size={20} color="#fff" />
+              <Text style={styles.playButtonText}>Play Trailer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.watchlistButton}>
+              <Ionicons name="add" size={20} color="#9333EA" />
+              <Text style={styles.watchlistButtonText}>Watchlist</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Genres</Text>
-          <View style={styles.genreContainer}>
-            {movie.genre.map((genre, index) => (
-              <View key={index} style={styles.genreTag}>
-                <Text style={styles.genreText}>{genre}</Text>
+          <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+            Overview
+          </Text>
+          <Text style={[styles.overview, { color: colorScheme === 'dark' ? '#D1D5DB' : '#6B7280' }]}>
+            {movie.overview}
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+            Cast
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castList}>
+            {cast.map(person => (
+              <View key={person.id} style={styles.castItem}>
+                {person.profile_path ? (
+                  <Image
+                    source={{ uri: `https://image.tmdb.org/t/p/w200${person.profile_path}` }}
+                    style={styles.castImage}
+                  />
+                ) : (
+                  <View style={[styles.castImage, { backgroundColor: '#374151', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Ionicons name="person" size={40} color="#6B7280" />
+                  </View>
+                )}
+                <Text style={styles.castName} numberOfLines={2}>{person.name}</Text>
               </View>
             ))}
-          </View>
+          </ScrollView>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cast & Crew</Text>
-          <View style={styles.creditsContainer}>
-            <Text style={styles.creditLabel}>Director:</Text>
-            <Text style={styles.creditValue}>{movie.director}</Text>
-          </View>
-          <View style={styles.creditsContainer}>
-            <Text style={styles.creditLabel}>Cast:</Text>
-            <Text style={styles.creditValue}>{movie.cast.join(', ')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mood Tags</Text>
-          <View style={styles.moodTagContainer}>
-            {movie.mood_tags.map((tag, index) => (
-              <View key={index} style={styles.moodTag}>
-                <Text style={styles.moodTagText}>#{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Watch Now</Text>
-          <View style={styles.streamingContainer}>
-            {movie.streaming_platforms.map((platform, index) => (
-              <Pressable
-                key={index}
-                style={styles.streamingButton}
-                onPress={() => handleStreamingPress(platform)}
-              >
-                <Text style={styles.streamingText}>{platform}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <Pressable style={styles.trailerButton} onPress={handleWatchTrailer}>
-          <Text style={styles.trailerButtonText}>🎬 Watch Trailer</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    padding: 20,
-    paddingTop: 100,
-  },
-  poster: {
-    width: width * 0.4,
-    height: width * 0.6,
-    borderRadius: 12,
-    marginRight: 20,
-  },
-  movieInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  year: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  rating: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ff9800',
-  },
-  language: {
-    fontSize: 14,
-    color: '#007AFF',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  content: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#333',
-  },
-  plot: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#444',
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  genreTag: {
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  genreText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  creditsContainer: {
-    marginBottom: 8,
-  },
-  creditLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 2,
-  },
-  creditValue: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-  },
-  moodTagContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  moodTag: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  moodTagText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  streamingContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  streamingButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  streamingText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  trailerButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  trailerButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    marginBottom: 20,
-    color: '#666',
-  },
-  backButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: 'white',
-    fontSize: 16,
-  },
+  container: { flex: 1 },
+  backdrop: { height: 400, position: 'relative' },
+  backdropImage: { width: '100%', height: '100%' },
+  backButton: { position: 'absolute', top: 50, left: 16, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 8 },
+  content: { padding: 16 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
+  meta: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  rating: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
+  ratingText: { marginLeft: 5, fontSize: 16, color: '#D1D5DB' },
+  year: { fontSize: 16, color: '#9CA3AF' },
+  buttons: { flexDirection: 'row', marginBottom: 20 },
+  playButton: { flex: 1, flexDirection: 'row', backgroundColor: '#9333EA', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  playButtonText: { color: '#fff', marginLeft: 5, fontWeight: '600' },
+  watchlistButton: { flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#9333EA', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  watchlistButtonText: { color: '#9333EA', marginLeft: 5, fontWeight: '600' },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
+  overview: { fontSize: 15, lineHeight: 22 },
+  castList: { marginTop: 10 },
+  castItem: { width: 100, marginRight: 12 },
+  castImage: { width: 80, height: 80, borderRadius: 40 },
+  castName: { marginTop: 8, fontSize: 12, textAlign: 'center' },
 });

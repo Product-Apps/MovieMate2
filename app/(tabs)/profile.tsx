@@ -1,322 +1,168 @@
-import React from 'react';
-import { StyleSheet, ScrollView, View, Text, Pressable, Switch } from 'react-native';
-import { useUserStore } from '@/store/useUserStore';
-import { useMoodStore } from '@/store/useMoodStore';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+
+const languages: string[] = ['Hindi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'English', 'Spanish', 'French'];
+const genres: string[] = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Animation'];
+const streamingServices: string[] = ['Netflix', 'Prime Video', 'Disney+', 'Hotstar', 'HBO Max', 'Apple TV+'];
 
 export default function ProfileScreen() {
-  const router = useRouter();
-  const { preferences, moodHistory, updatePreferences, clearUserData } = useUserStore();
-  const { currentMoodAnalysis, resetPuzzleData } = useMoodStore();
+  const colorScheme = useColorScheme();
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('Hindi');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStreaming, setSelectedStreaming] = useState<string[]>([]);
+  const [darkMode, setDarkMode] = useState<boolean>(true);
 
-  const handleToggleDarkMode = (value: boolean) => {
-    updatePreferences({ darkMode: value });
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async (): Promise<void> => {
+    const lang = await AsyncStorage.getItem('language');
+    const genresStr = await AsyncStorage.getItem('genres');
+    const streamingStr = await AsyncStorage.getItem('streaming');
+    
+    if (lang) setSelectedLanguage(lang);
+    if (genresStr) setSelectedGenres(JSON.parse(genresStr));
+    if (streamingStr) setSelectedStreaming(JSON.parse(streamingStr));
   };
 
-  const handleClearData = () => {
-    clearUserData();
-    resetPuzzleData();
+  const savePreferences = async (): Promise<void> => {
+    await AsyncStorage.setItem('language', selectedLanguage);
+    await AsyncStorage.setItem('genres', JSON.stringify(selectedGenres));
+    await AsyncStorage.setItem('streaming', JSON.stringify(selectedStreaming));
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(date));
+  const toggleGenre = (genre: string): void => {
+    let newGenres = [...selectedGenres];
+    if (newGenres.includes(genre)) {
+      newGenres = newGenres.filter(g => g !== genre);
+    } else {
+      newGenres.push(genre);
+    }
+    setSelectedGenres(newGenres);
+    savePreferences();
+  };
+
+  const toggleStreaming = (service: string): void => {
+    let newServices = [...selectedStreaming];
+    if (newServices.includes(service)) {
+      newServices = newServices.filter(s => s !== service);
+    } else {
+      newServices.push(service);
+    }
+    setSelectedStreaming(newServices);
+    savePreferences();
+  };
+
+  const showPremiumDialog = (): void => {
+    alert('Upgrade to Premium for $1.99/month\n\nFeatures:\n• Ad-free experience\n• Unlimited mood saves\n• Full mood history\n• Advanced recommendations\n• Priority support');
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>👤 Profile</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={50} color="#fff" />
+          </View>
+          <Text style={[styles.profileName, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+            Movie Enthusiast
+          </Text>
+        </View>
 
-      {/* Current Mood Section */}
-      {currentMoodAnalysis && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Current Mood</Text>
-          <View style={styles.moodCard}>
-            <View style={styles.moodHeader}>
-              <Text style={styles.moodType}>{currentMoodAnalysis.primaryMood}</Text>
-              <Text style={styles.confidence}>
-                {Math.round(currentMoodAnalysis.confidence * 100)}%
+        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+          Language Preference
+        </Text>
+        <View style={styles.chipContainer}>
+          {languages.map(lang => (
+            <TouchableOpacity
+              key={lang}
+              style={[styles.chip, selectedLanguage === lang && { backgroundColor: '#9333EA' }]}
+              onPress={() => {
+                setSelectedLanguage(lang);
+                savePreferences();
+              }}
+            >
+              <Text style={[styles.chipText, selectedLanguage === lang && { color: '#fff' }]}>
+                {lang}
               </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+          Favorite Genres
+        </Text>
+        <View style={styles.chipContainer}>
+          {genres.map(genre => (
+            <TouchableOpacity
+              key={genre}
+              style={[styles.chip, selectedGenres.includes(genre) && { backgroundColor: '#9333EA' }]}
+              onPress={() => toggleGenre(genre)}
+            >
+              <Text style={[styles.chipText, selectedGenres.includes(genre) && { color: '#fff' }]}>
+                {genre}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+          Streaming Services
+        </Text>
+        <View style={styles.chipContainer}>
+          {streamingServices.map(service => (
+            <TouchableOpacity
+              key={service}
+              style={[styles.chip, selectedStreaming.includes(service) && { backgroundColor: '#9333EA' }]}
+              onPress={() => toggleStreaming(service)}
+            >
+              <Text style={[styles.chipText, selectedStreaming.includes(service) && { color: '#fff' }]}>
+                {service}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.settingsItem}>
+          <Ionicons name="moon" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+          <Text style={[styles.settingsText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+            Dark Mode
+          </Text>
+          <TouchableOpacity onPress={() => setDarkMode(!darkMode)}>
+            <View style={[styles.switch, darkMode && styles.switchActive]}>
+              <View style={[styles.switchThumb, darkMode && styles.switchThumbActive]} />
             </View>
-            <Text style={styles.moodDescription}>
-              {currentMoodAnalysis.description}
-            </Text>
-            {currentMoodAnalysis.secondaryMood && (
-              <Text style={styles.secondaryMood}>
-                Secondary: {currentMoodAnalysis.secondaryMood}
-              </Text>
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* Preferences Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
-
-        <View style={styles.preferenceItem}>
-          <View style={styles.preferenceText}>
-            <Text style={styles.preferenceLabel}>Dark Mode</Text>
-            <Text style={styles.preferenceDescription}>
-              Switch between light and dark themes
-            </Text>
-          </View>
-          <Switch
-            value={preferences.darkMode}
-            onValueChange={handleToggleDarkMode}
-            trackColor={{ false: '#e0e0e0', true: '#007AFF' }}
-            thumbColor={preferences.darkMode ? '#fff' : '#f4f3f4'}
-          />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.preferenceItem}>
-          <View style={styles.preferenceText}>
-            <Text style={styles.preferenceLabel}>Favorite Languages</Text>
-            <Text style={styles.preferenceDescription}>
-              {preferences.favoriteLanguages.join(', ') || 'None selected'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.preferenceItem}>
-          <View style={styles.preferenceText}>
-            <Text style={styles.preferenceLabel}>Favorite Genres</Text>
-            <Text style={styles.preferenceDescription}>
-              {preferences.favoriteGenres.join(', ') || 'None selected'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Mood History Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mood History</Text>
-        {moodHistory.length > 0 ? (
-          <View style={styles.historyContainer}>
-            {moodHistory.slice(0, 5).map((history, index) => (
-              <View key={history.id} style={styles.historyItem}>
-                <View style={styles.historyMood}>
-                  <Text style={styles.historyMoodText}>
-                    {history.analysis.primaryMood}
-                  </Text>
-                  <Text style={styles.historyDate}>
-                    {formatDate(history.timestamp)}
-                  </Text>
-                </View>
-                <Text style={styles.historyConfidence}>
-                  {Math.round(history.analysis.confidence * 100)}%
-                </Text>
-              </View>
-            ))}
-            {moodHistory.length > 5 && (
-              <Text style={styles.moreHistory}>
-                +{moodHistory.length - 5} more entries
-              </Text>
-            )}
-          </View>
-        ) : (
-          <Text style={styles.emptyHistory}>
-            No mood history yet. Complete some puzzles to see your patterns!
-          </Text>
-        )}
-      </View>
-
-      {/* Actions Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actions</Text>
-
-        <Pressable 
-          style={styles.actionButton}
-          onPress={() => router.push('/puzzles')}
-        >
-          <Text style={styles.actionButtonText}>🧩 Take New Mood Assessment</Text>
-        </Pressable>
-
-        <Pressable 
-          style={styles.actionButton}
-          onPress={() => router.push('/movies')}
-        >
-          <Text style={styles.actionButtonText}>🎬 View Movie Recommendations</Text>
-        </Pressable>
-
-        <Pressable 
-          style={[styles.actionButton, styles.dangerButton]}
-          onPress={handleClearData}
-        >
-          <Text style={[styles.actionButtonText, styles.dangerButtonText]}>
-            🗑️ Clear All Data
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* App Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        <Text style={styles.appInfo}>MoodFlix v1.0.0</Text>
-          <Text style={styles.appInfo}>
-            AI-powered movie recommendations based on mood detection through interactive puzzles.
-          </Text>
-      </View>
-    </ScrollView>
+        <TouchableOpacity style={styles.premiumItem} onPress={showPremiumDialog}>
+          <Ionicons name="star" size={24} color="#FCD34D" />
+          <Text style={styles.premiumText}>Upgrade to Premium</Text>
+          <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  section: {
-    marginBottom: 30,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 15,
-    color: '#333',
-  },
-  moodCard: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    padding: 20,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-  },
-  moodHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  moodType: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    textTransform: 'capitalize',
-  },
-  confidence: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4CAF50',
-  },
-  moodDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  secondaryMood: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-  },
-  preferenceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  preferenceText: {
-    flex: 1,
-  },
-  preferenceLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
-  },
-  preferenceDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  historyContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 15,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  historyMood: {
-    flex: 1,
-  },
-  historyMoodText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    textTransform: 'capitalize',
-  },
-  historyDate: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  historyConfidence: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4CAF50',
-  },
-  moreHistory: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  emptyHistory: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    padding: 20,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-  },
-  actionButton: {
-    backgroundColor: '#f0f0f0',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  dangerButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 59, 48, 0.3)',
-  },
-  dangerButtonText: {
-    color: '#FF3B30',
-  },
-  appInfo: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 8,
-  },
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 16 },
+  profileHeader: { alignItems: 'center', marginBottom: 30 },
+  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#9333EA', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  profileName: { fontSize: 22, fontWeight: 'bold' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 25, marginBottom: 10 },
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap' },
+  chip: { backgroundColor: '#374151', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, marginBottom: 8 },
+  chipText: { color: '#D1D5DB', fontSize: 14 },
+  settingsItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#374151', marginTop: 20 },
+  settingsText: { flex: 1, marginLeft: 15, fontSize: 16 },
+  switch: { width: 50, height: 30, borderRadius: 15, backgroundColor: '#374151', justifyContent: 'center', padding: 3 },
+  switchActive: { backgroundColor: '#9333EA' },
+  switchThumb: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff' },
+  switchThumbActive: { alignSelf: 'flex-end' },
+  premiumItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#374151' },
+  premiumText: { flex: 1, marginLeft: 15, fontSize: 16, color: '#FCD34D', fontWeight: '600' },
 });

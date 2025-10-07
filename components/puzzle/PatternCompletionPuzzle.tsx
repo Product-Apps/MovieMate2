@@ -1,49 +1,36 @@
 // components/puzzle/PatternCompletionPuzzle.tsx
-import React from 'react';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
-import { PuzzleOption } from '@/types/puzzle';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
 
 interface PatternCompletionPuzzleProps {
-  options: PuzzleOption[];
-  onSelect: (optionId: string) => void;
-  selectedOption?: string;
+  onComplete: () => void;
 }
 
-export default function PatternCompletionPuzzle({ 
-  options, 
-  onSelect, 
-  selectedOption 
-}: PatternCompletionPuzzleProps) {
+export default function PatternCompletionPuzzle({ onComplete }: PatternCompletionPuzzleProps) {
+  const [selected, setSelected] = useState<number[]>([]);
+  const pattern = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+  const handleSelect = (num: number) => {
+    const newSelected = [...selected, num];
+    setSelected(newSelected);
+    if (newSelected.length >= 4) {
+      onComplete();
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.instruction}>
-        Choose the pattern that appeals to you most
-      </Text>
-      
-      <View style={styles.optionsContainer}>
-        {options.map((option) => (
-          <Pressable
-            key={option.id}
-            style={[
-              styles.patternOption,
-              selectedOption === option.id && styles.selectedOption,
-            ]}
-            onPress={() => onSelect(option.id)}
+      <Text style={styles.title}>Pattern Completion</Text>
+      <Text style={styles.instruction}>Tap 4 squares to complete the pattern</Text>
+      <View style={styles.grid}>
+        {pattern.map((num) => (
+          <TouchableOpacity
+            key={num}
+            style={[styles.box, selected.includes(num) && styles.selectedBox]}
+            onPress={() => handleSelect(num)}
           >
-            <Text style={styles.patternSymbol}>{option.text}</Text>
-            <Text style={[
-              styles.optionLabel,
-              selectedOption === option.id && styles.selectedLabel,
-            ]}>
-              {option.label}
-            </Text>
-            
-            {selectedOption === option.id && (
-              <View style={styles.checkmark}>
-                <Text style={styles.checkmarkText}>✓</Text>
-              </View>
-            )}
-          </Pressable>
+            <Text style={styles.boxText}>{num}</Text>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -51,62 +38,11 @@ export default function PatternCompletionPuzzle({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  instruction: {
-    fontSize: 18,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
-    lineHeight: 24,
-  },
-  optionsContainer: {
-    gap: 15,
-  },
-  patternOption: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f8f9fa',
-    alignItems: 'center',
-  },
-  selectedOption: {
-    borderColor: '#007AFF',
-    backgroundColor: '#e3f2fd',
-  },
-  patternSymbol: {
-    fontSize: 32,
-    marginBottom: 10,
-    color: '#333',
-  },
-  optionLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-    textAlign: 'center',
-  },
-  selectedLabel: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  checkmark: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkmarkText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  container: { padding: 20, alignItems: 'center', marginTop: 30 },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
+  instruction: { fontSize: 14, color: '#9CA3AF', marginBottom: 20 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', width: 280 },
+  box: { width: 80, height: 80, margin: 5, backgroundColor: '#1F2937', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  selectedBox: { backgroundColor: '#9333EA' },
+  boxText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 });

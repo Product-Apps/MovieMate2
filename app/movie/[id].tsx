@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme, Linking, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme, Linking, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,81 +67,78 @@ export default function MovieDetailScreen() {
       setLoading(false);
     } catch (error: any) {
       console.error(error);
-      setError(error?.message || 'Failed to load movie details');
-      setLoading(false);
     }
   };
 
-  const handleFavoriteToggle = () => {
-    toggleFavorite(movie!.id);
-    if (!isFavorite(movie!.id)) {
-      const genreIds = movie!.genres?.map(g => g.id) || [];
-      trackFavorite(genreIds);
-    }
-  };
+  const handlePlayTrailer = async () => {
+    if (!movie || isPlayingTrailer) return;
 
-  const handleWatchlistToggle = () => {
-    const wasInWatchlist = isInWatchlist(movie!.id);
-    toggleWatchlist(movie!.id);
-    Alert.alert(
-      wasInWatchlist ? 'Removed from Watchlist' : 'Added to Watchlist',
-      wasInWatchlist 
-        ? `${movie!.title} has been removed from your watchlist` 
-        : `${movie!.title} has been added to your watchlist`
-    );
-  };
-
-  const playTrailer = async () => {
-    // Prevent multiple clicks
-    if (isPlayingTrailer) return;
-    
+    setIsPlayingTrailer(true);
     try {
-      setIsPlayingTrailer(true);
-      
-      if (!movie?.id) {
+      const videos = (await tmdbApi.getMovieVideos(movie.id)) as any;
+      const results = videos?.results || [];
+      const trailer =
+        results.find(
+          (v: any) => v.type === "Trailer" && v.site === "YouTube" && v.official
+        ) ||
+        results.find((v: any) => v.type === "Trailer" && v.site === "YouTube") ||
+        results.find((v: any) => v.site === "YouTube");
+
+      if (!trailer) {
+        Alert.alert("No trailer available", "This movie does not have a trailer.");
         setIsPlayingTrailer(false);
         return;
       }
-      
-      const videos = await tmdbApi.getMovieVideos(movie.id) as any
-      const results = videos?.results || []
-      const trailer =
-        results.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube' && v.official) ||
-        results.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') ||
-        results.find((v: any) => v.site === 'YouTube')
-      
-      if (!trailer) {
-        Alert.alert('No trailer available', 'This movie does not have a trailer.')
-        setIsPlayingTrailer(false);
-        return
+
+      const trailerUrl = Platform.select({
+        ios: `youtube://watch?v=${trailer.key}`,
+        android: `vnd.youtube:${trailer.key}`,
+        default: `https://www.youtube.com/watch?v=${trailer.key}`,
+      });
+
+      const fallbackUrl = `https://www.youtube.com/watch?v=${trailer.key}`;
+
+      try {
+        const supported = await Linking.canOpenURL(trailerUrl);
+        if (supported) {
+          await Linking.openURL(trailerUrl);
+        } else {
+          await Linking.openURL(fallbackUrl);
+        }
+      } catch (error) {
+        await Linking.openURL(fallbackUrl);
       }
-      
-      const url = `https://www.youtube.com/watch?v=${trailer.key}`
-      const supported = await Linking.canOpenURL(url)
-      
-      if (supported) {
-        await Linking.openURL(url)
-      } else {
-        Alert.alert('Cannot open trailer', 'Your device cannot open the trailer URL.')
-      }
-      
+
       // Reset after 2 seconds to allow retry if needed
       setTimeout(() => setIsPlayingTrailer(false), 2000);
     } catch (e: any) {
-      console.error(e)
-      Alert.alert('Error', e?.message || 'Failed to play trailer')
+      console.error(e);
+      Alert.alert("Error", e?.message || "Failed to play trailer");
       setIsPlayingTrailer(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
         <ActivityIndicator size="large" color="#9333EA" />
-        <Text style={[styles.loadingText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>Loading movie details...</Text>
       </View>
     );
   }
+
+  const handleFavoriteToggle = () => {
+    if (!movie) return;
+    toggleFavorite(movie);
+    if (!isFavorite(movie.id)) {
+      const genreIds = movie.genres?.map((g) => g.id) || movie.genre_ids || [];
+      trackFavorite(movie.id, genreIds);
+    }
+  };
+
+  const handleWatchlistToggle = () => {
+    if (!movie) return;
+    toggleWatchlist(movie);
+  };
 
   if (error || !movie) {
     return (
@@ -190,7 +187,7 @@ export default function MovieDetailScreen() {
           </View>
 
           <View style={styles.buttons}>
-            <TouchableOpacity style={styles.playButton} onPress={playTrailer}>
+            <TouchableOpacity style={styles.playButton} onPress={handlePlayTrailer}>
               <Ionicons name="play" size={20} color="#fff" />
               <Text style={styles.playButtonText}>Play Trailer</Text>
             </TouchableOpacity>

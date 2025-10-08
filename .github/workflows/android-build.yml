@@ -1,6 +1,3 @@
-# Simplified GitHub Actions Workflow for React Native/Expo Android Builds
-# This workflow is optimized for reliability and reduced complexity
-
 name: Build Android APK & AAB
 
 on:
@@ -24,7 +21,6 @@ jobs:
     timeout-minutes: 60
     
     steps:
-      # Basic Setup
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -43,78 +39,109 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Dependency Installation
+      # Enhanced Gradle caching
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Cache node_modules separately
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Install dependencies without legacy-peer-deps
       - name: Install Dependencies
         run: |
-          npm ci --legacy-peer-deps
-          npx expo install --fix
-      # Gradle Configuration
+          npm ci
+          npx expo install --check
+
+      # Clear Metro bundler cache
+      - name: Clear Metro Cache
+        run: |
+          rm -rf $TMPDIR/metro-*
+          rm -rf $TMPDIR/haste-map-*
+          rm -rf .expo
+
       - name: Configure Gradle
         run: |
           mkdir -p ~/.gradle
-          echo "org.gradle.jvmargs=-Xmx4096m" >> ~/.gradle/gradle.properties
-          echo "org.gradle.daemon=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-          echo "android.useAndroidX=true" >> ~/.gradle/gradle.properties
-          echo "android.enableJetifier=true" >> ~/.gradle/gradle.properties
-      # Generate Native Code
+          cat > ~/.gradle/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
+          org.gradle.daemon=true
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+      # Generate Native Code with cache clearing
       - name: Generate Android Code
-        run: npx expo prebuild --platform android --clean --no-install
+        run: npx expo prebuild --platform android --clean
         env:
           EXPO_NO_DOTENV: 1
 
-      # Keystore Setup
       - name: Setup Release Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
-          echo "storeFile=release.keystore" > android/keystore.properties
-          echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/keystore.properties
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/keystore.properties
-          echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/keystore.properties
-      # Build Configuration
+          cat > android/keystore.properties << 'EOF'
+          storeFile=release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
       - name: Configure Release Signing
         working-directory: android
         run: |
-          # Add signing configuration to app/build.gradle
           cat >> app/build.gradle << 'EOF'
           
-          // Release signing configuration
           def keystorePropertiesFile = rootProject.file("keystore.properties")
           def keystoreProperties = new Properties()
           if (keystorePropertiesFile.exists()) {
               keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-          }
-          
-          android {
-              signingConfigs {
-                  release {
-                      keyAlias keystoreProperties['keyAlias'] ?: 'key0'
-                      keyPassword keystoreProperties['keyPassword'] ?: 'android'
-                      storeFile file(keystoreProperties['storeFile'] ?: 'release.keystore')
-                      storePassword keystoreProperties['storePassword'] ?: 'android'
+              
+              android {
+                  signingConfigs {
+                      release {
+                          keyAlias keystoreProperties['keyAlias']
+                          keyPassword keystoreProperties['keyPassword']
+                          storeFile file(keystoreProperties['storeFile'])
+                          storePassword keystoreProperties['storePassword']
+                      }
                   }
-              }
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
+                  buildTypes {
+                      release {
+                          signingConfig signingConfigs.release
+                      }
                   }
               }
           }
           EOF
-      # Build APK
+
+      # Build with clean cache
       - name: Build Release APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew clean
-          ./gradlew assembleRelease --no-daemon --stacktrace
-      # Build AAB (only on main/master)
+          ./gradlew clean --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace --no-build-cache
+
       - name: Build Release AAB
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         working-directory: android
-        run: ./gradlew bundleRelease --no-daemon
+        run: ./gradlew bundleRelease --no-daemon --no-build-cache
 
-      # Upload Artifacts
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -130,7 +157,6 @@ jobs:
           path: android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
 
-      # Create Release (only on main/master push)
       - name: Create GitHub Release
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: softprops/action-gh-release@v1
@@ -143,7 +169,6 @@ jobs:
             **Changes:**
             - Commit: ${{ github.sha }}
             - Branch: ${{ github.ref_name }}
-            - Timestamp: ${{ github.event.head_commit.timestamp }}
             
             📱 **Downloads:**
             - APK: For direct installation
@@ -155,9 +180,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# Required GitHub Secrets:
-# ANDROID_KEYSTORE_BASE64: Base64 encoded keystore file
-# ANDROID_KEYSTORE_PASSWORD: Keystore password
-# ANDROID_KEY_ALIAS: Key alias name
-# ANDROID_KEY_PASSWORD: Key password

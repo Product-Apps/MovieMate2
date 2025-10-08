@@ -11,7 +11,7 @@ const MovieCard = ({ movie }: { movie: Movie }) => {
   return (
     <TouchableOpacity
       style={styles.movieCard}
-      onPress={() => router.push(`/movie/${movie.id}`)}
+      onPress={() => router.push({ pathname: '/movie/[id]', params: { id: movie.id } })}
     >
       <Image
         source={{ uri: `https://image.tmdb.org/t/p/w500${movie.poster_path}` }}
@@ -45,8 +45,8 @@ export const MovieList = ({ title, movies }: { title: string; movies: Movie[] })
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {movies.map(movie => (
-          <MovieCard key={movie.id} movie={movie} />
+        {movies.map((movie, index) => (
+          <MovieCard key={`${movie.id}-${movie.title}-${index}`} movie={movie} />
         ))}
       </ScrollView>
     </View>

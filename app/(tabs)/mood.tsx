@@ -1,4 +1,5 @@
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Pressable, Animated, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useMoodStore } from '../../store/useMoodStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -194,7 +195,7 @@ export default function MoodScreen() {
     const progress = ((currentQuestion + 1) / MOOD_QUESTIONS.length) * 100;
 
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.questionHeader}>
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -224,13 +225,14 @@ export default function MoodScreen() {
             ))}
           </View>
         </Animated.View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Selection Mode
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
       <View style={styles.header}>
         <Text style={styles.title}>How are you feeling?</Text>
         <Text style={styles.subtitle}>Choose how you want to find your perfect movie</Text>
@@ -314,7 +316,7 @@ export default function MoodScreen() {
 
       <TouchableOpacity 
         style={styles.playlistButton}
-        onPress={() => router.push(`/playlists/${mood}`)}
+        onPress={() => router.push({ pathname: '/playlists/[mood]', params: { mood } })}
       >
         <Ionicons name="list" size={20} color="#fff" />
         <Text style={styles.playlistButtonText}>Create Movie Playlist</Text>
@@ -326,7 +328,8 @@ export default function MoodScreen() {
         onLanguagesChange={setSelectedLanguages}
         onClose={() => setLanguageModalVisible(false)}
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

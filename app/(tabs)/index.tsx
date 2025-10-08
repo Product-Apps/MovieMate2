@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,7 +69,10 @@ export default function HomeScreen() {
     }
     try {
       const moviePromises = favorites.map(id => tmdbApi.getMovieDetails(id));
-      const movies = await Promise.all(moviePromises);
+      const results = await Promise.allSettled(moviePromises);
+      const movies = results
+        .filter(result => result.status === 'fulfilled')
+        .map((result: any) => result.value);
       setFavoriteMovies(movies);
     } catch (error) {
       console.error('Error fetching favorites:', error);
@@ -83,7 +87,10 @@ export default function HomeScreen() {
     }
     try {
       const moviePromises = recentIds.map(id => tmdbApi.getMovieDetails(id));
-      const movies = await Promise.all(moviePromises);
+      const results = await Promise.allSettled(moviePromises);
+      const movies = results
+        .filter(result => result.status === 'fulfilled')
+        .map((result: any) => result.value);
       setRecentlyViewedMovies(movies);
     } catch (error) {
       console.error('Error fetching recently viewed:', error);
@@ -97,7 +104,10 @@ export default function HomeScreen() {
     }
     try {
       const moviePromises = watchlist.map(id => tmdbApi.getMovieDetails(id));
-      const movies = await Promise.all(moviePromises);
+      const results = await Promise.allSettled(moviePromises);
+      const movies = results
+        .filter(result => result.status === 'fulfilled')
+        .map((result: any) => result.value);
       setWatchlistMovies(movies);
     } catch (error) {
       console.error('Error fetching watchlist:', error);
@@ -167,7 +177,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>MovieMate</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
@@ -196,28 +206,28 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {recentlyViewedMovies.length > 0 && (
-          <MovieList title="Continue Exploring" movies={recentlyViewedMovies} />
+          <MovieList key="continue-exploring" title="Continue Exploring" movies={recentlyViewedMovies} />
         )}
         {watchlistMovies.length > 0 && (
-          <MovieList title="Your Watchlist" movies={watchlistMovies} />
+          <MovieList key="watchlist" title="Your Watchlist" movies={watchlistMovies} />
         )}
         {favoriteMovies.length > 0 && (
-          <MovieList title="Your Favorites" movies={favoriteMovies} />
+          <MovieList key="favorites" title="Your Favorites" movies={favoriteMovies} />
         )}
         {personalizedMovies.length > 0 && (
-          <MovieList title="Because You Watched" movies={personalizedMovies} />
+          <MovieList key="personalized" title="Because You Watched" movies={personalizedMovies} />
         )}
-        <MovieList title="Recommended for You" movies={recommendedMovies} />
+        <MovieList key="recommended" title="Recommended for You" movies={recommendedMovies} />
         {trendingTVShows.length > 0 && (
-          <TVShowList title="Trending TV Shows" shows={trendingTVShows} />
+          <TVShowList key="trending-tv" title="Trending TV Shows" shows={trendingTVShows} />
         )}
-        <MovieList title="Trending Movies" movies={trendingMovies} />
+        <MovieList key="trending-movies" title="Trending Movies" movies={trendingMovies} />
         
         <View style={styles.newsSection}>
           <NewsFeed />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

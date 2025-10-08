@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme, Linking, Alert, ActivityIndicator, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,7 +138,7 @@ export default function MovieDetailScreen() {
 
   const handleWatchlistToggle = () => {
     if (!movie) return;
-    toggleWatchlist(movie);
+    toggleWatchlist(movie.id);
   };
 
   if (error || !movie) {
@@ -158,7 +159,7 @@ export default function MovieDetailScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.backdrop}>
           <Image
@@ -237,7 +238,7 @@ export default function MovieDetailScreen() {
           </ScrollView>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

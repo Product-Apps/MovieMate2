@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -90,7 +91,8 @@ export default function ProfileScreen() {
   const styles = getStyles(true); // Always use dark mode
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
       <Text style={styles.title}>Profile</Text>
 
       <Card>
@@ -196,7 +198,8 @@ export default function ProfileScreen() {
         onClose={() => setLanguageModalVisible(false)}
         singleSelect={true}  // Enable single selection mode
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,11 +14,11 @@ const moodColors = ['#3B82F6', '#9333EA', '#F97316', '#EF4444', '#10B981', '#EC4
 export default function MoodScreen() {
   const colorScheme = useColorScheme();
   const [selectedGame, setSelectedGame] = useState('');
-  const [selectedWords, setSelectedWords] = useState([]);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [moodSlider, setMoodSlider] = useState(50);
   const [selectedColor, setSelectedColor] = useState('#3B82F6');
 
-  const GameCard = ({ title, description, icon, gameId }) => {
+  const GameCard = ({ title, description, icon, gameId }: { title: string, description: string, icon: any, gameId: string }) => {
     const isSelected = selectedGame === gameId;
     return (
       <TouchableOpacity
@@ -34,7 +35,7 @@ export default function MoodScreen() {
     );
   };
 
-  const toggleWord = (word) => {
+  const toggleWord = (word: string) => {
     if (selectedWords.includes(word)) {
       setSelectedWords(selectedWords.filter(w => w !== word));
     } else {
@@ -76,7 +77,7 @@ export default function MoodScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
           Capture Your Mood
@@ -159,7 +160,7 @@ export default function MoodScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

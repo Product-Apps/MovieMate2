@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -85,7 +86,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>Welcome to MovieMate</Text>
         <Text style={styles.subtitle}>Find your perfect movie match!</Text>
@@ -157,7 +158,7 @@ export default function OnboardingScreen() {
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -177,4 +178,12 @@ const styles = StyleSheet.create({
   selectedColor: { borderWidth: 3, borderColor: '#fff' },
   button: { paddingVertical: 16, borderRadius: 25, alignItems: 'center', marginBottom: 40 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  input: {
+    backgroundColor: '#374151',
+    borderRadius: 10,
+    padding: 16,
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 20,
+  },
 });

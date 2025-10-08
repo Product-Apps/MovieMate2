@@ -1,5 +1,6 @@
 
 import { View, Text, StyleSheet, TextInput, ScrollView, Image, TouchableOpacity, useColorScheme, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,7 +58,7 @@ export default function SearchScreen() {
   const styles = getStyles(colorScheme);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TextInput
           style={styles.searchInput}
@@ -124,7 +125,7 @@ export default function SearchScreen() {
           ))}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

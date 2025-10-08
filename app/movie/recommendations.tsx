@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MovieList } from '../../components/movie/MovieList';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +24,7 @@ export default function RecommendationsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -34,11 +35,10 @@ export default function RecommendationsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {sections.map(({ key, title, data }) => (
           <View key={key} style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>{title}</Text>
             {data.loading ? (
               <Text style={styles.loadingText}>Loading…</Text>
             ) : data.movies.length ? (
-              <MovieList key={key} movies={data.movies} hideTitle />
+              <MovieList key={key} title={title} movies={data.movies} />
             ) : (
               <Text style={styles.emptyText}>No movies found for this period</Text>
             )}
@@ -47,7 +47,7 @@ export default function RecommendationsScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

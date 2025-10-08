@@ -15,31 +15,34 @@ export function TVShowList({ title, shows }: TVShowListProps) {
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
-        {shows.map((show) => (
-          <TouchableOpacity
-            key={show.id}
-            style={styles.card}
-            onPress={() => router.push(`/tv/${show.id}`)}
-          >
-            {show.poster_path ? (
-              <Image
-                source={{ uri: tmdbApi.getImageUrl(show.poster_path) || undefined }}
-                style={styles.poster}
-              />
-            ) : (
-              <View style={styles.placeholderPoster}>
-                <Ionicons name="tv" size={50} color="#6B7280" />
+        {shows.map((show, index) => {
+          const key = `${show.id}-${show.name}-${index}`;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={styles.card}
+              onPress={() => router.push({ pathname: '/tv/[id]', params: { id: show.id } })}
+            >
+              {show.poster_path ? (
+                <Image
+                  source={{ uri: tmdbApi.getImageUrl(show.poster_path) || undefined }}
+                  style={styles.poster}
+                />
+              ) : (
+                <View style={styles.placeholderPoster}>
+                  <Ionicons name="tv" size={50} color="#6B7280" />
+                </View>
+              )}
+              <Text style={styles.showTitle} numberOfLines={2}>
+                {show.name}
+              </Text>
+              <View style={styles.rating}>
+                <Ionicons name="star" size={14} color="#FCD34D" />
+                <Text style={styles.ratingText}>{show.vote_average?.toFixed(1)}</Text>
               </View>
-            )}
-            <Text style={styles.showTitle} numberOfLines={2}>
-              {show.name}
-            </Text>
-            <View style={styles.rating}>
-              <Ionicons name="star" size={14} color="#FCD34D" />
-              <Text style={styles.ratingText}>{show.vote_average?.toFixed(1)}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );

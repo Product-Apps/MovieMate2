@@ -1,0 +1,1 @@
+- [x] Wrap the root component in `GestureHandlerRootView` to fix the gesture handler error.

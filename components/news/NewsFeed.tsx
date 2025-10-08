@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
@@ -16,9 +17,10 @@ interface NewsItem {
   original_language: string;
 }
 
-export default function NewsFeed() {
+export default function NewsFeed({ darkMode }: { darkMode?: boolean }) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { language, age } = useProfileStore();
 
   useEffect(() => {
@@ -72,8 +74,10 @@ export default function NewsFeed() {
       ];
 
       setNews(newsItems);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error fetching news:', error);
+      setError(error.message || 'Failed to fetch news');
     } finally {
       setLoading(false);
     }
@@ -81,8 +85,24 @@ export default function NewsFeed() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading news...</Text>
+      <View style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+        <Text style={[styles.loadingText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>Loading news...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+        <Text style={[styles.loadingText, { color: '#EF4444' }]}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (news.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+        <Text style={[styles.loadingText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>No news available.</Text>
       </View>
     );
   }
@@ -95,21 +115,21 @@ export default function NewsFeed() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.headerContainer}>
-        <Text style={styles.header}>Latest News</Text>
+        <Text style={[styles.header, { color: darkMode ? '#fff' : '#000' }]}>Latest News</Text>
         {(language || age) && (
           <View style={styles.filterInfo}>
             {language && (
-              <View style={styles.filterChip}>
+              <View style={[styles.filterChip, { backgroundColor: darkMode ? '#1E1E1E' : '#F3F4F6', borderColor: darkMode ? '#2D2D2D' : '#E5E7EB' }]}>
                 <Ionicons name="globe" size={12} color="#9333EA" />
-                <Text style={styles.filterChipText}>{language.toUpperCase()}</Text>
+                <Text style={[styles.filterChipText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>{language.toUpperCase()}</Text>
               </View>
             )}
             {age && (
-              <View style={styles.filterChip}>
+              <View style={[styles.filterChip, { backgroundColor: darkMode ? '#1E1E1E' : '#F3F4F6', borderColor: darkMode ? '#2D2D2D' : '#E5E7EB' }]}>
                 <Ionicons name="shield-checkmark" size={12} color="#34D399" />
-                <Text style={styles.filterChipText}>{getAgeLabel()}</Text>
+                <Text style={[styles.filterChipText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>{getAgeLabel()}</Text>
               </View>
             )}
           </View>
@@ -119,7 +139,7 @@ export default function NewsFeed() {
       {news.map((item) => (
         <TouchableOpacity
           key={`${item.type}-${item.id}`}
-          style={styles.newsCard}
+          style={[styles.newsCard, { backgroundColor: darkMode ? '#1E1E1E' : '#fff', borderColor: darkMode ? '#2D2D2D' : '#E5E7EB' }]}
           onPress={() => router.push(`/movie/${item.id}`)}
         >
           <View style={styles.newsContent}>
@@ -128,14 +148,14 @@ export default function NewsFeed() {
                 {item.type === 'upcoming' ? '🎬 UPCOMING' : '🔥 TRENDING'}
               </Text>
             </View>
-            <Text style={styles.newsTitle}>{item.title}</Text>
-            <Text style={styles.newsOverview} numberOfLines={3}>{item.overview}</Text>
+            <Text style={[styles.newsTitle, { color: darkMode ? '#fff' : '#000' }]}>{item.title}</Text>
+            <Text style={[styles.newsOverview, { color: darkMode ? '#9CA3AF' : '#6B7280' }]} numberOfLines={3}>{item.overview}</Text>
             <View style={styles.newsFooter}>
               <View style={styles.newsRating}>
                 <Ionicons name="star" size={14} color="#FCD34D" />
                 <Text style={styles.newsRatingText}>{item.vote_average?.toFixed(1)}</Text>
               </View>
-              <Text style={styles.newsDate}>
+              <Text style={[styles.newsDate, { color: darkMode ? '#6B7280' : '#9CA3AF' }]}>
                 {item.type === 'upcoming' ? `Releases: ${item.release_date}` : 'Trending Now'}
               </Text>
               <Ionicons name="chevron-forward" size={16} color="#9333EA" />
@@ -154,22 +174,23 @@ export default function NewsFeed() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#121212' },
+  container: {},
+
   headerContainer: { marginBottom: 16 },
-  header: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
   filterInfo: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1E1E', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4, borderWidth: 1, borderColor: '#2D2D2D' },
-  filterChipText: { color: '#9CA3AF', fontSize: 11, fontWeight: '600' },
-  loadingText: { color: '#9CA3AF', textAlign: 'center', marginTop: 40 },
-  newsCard: { flexDirection: 'row', backgroundColor: '#1E1E1E', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#2D2D2D' },
+  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4, borderWidth: 1 },
+  filterChipText: { fontSize: 11, fontWeight: '600' },
+  loadingText: { textAlign: 'center', marginTop: 40 },
+  newsCard: { flexDirection: 'row', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1 },
   newsContent: { flex: 1, marginRight: 12 },
   newsBadge: { backgroundColor: '#9333EA', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 8 },
   newsBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  newsTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  newsOverview: { fontSize: 13, color: '#9CA3AF', lineHeight: 18, marginBottom: 12 },
+  newsTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  newsOverview: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
   newsFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   newsRating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   newsRatingText: { fontSize: 12, color: '#FCD34D', fontWeight: '600' },
-  newsDate: { fontSize: 12, color: '#6B7280', flex: 1, marginLeft: 8 },
+  newsDate: { fontSize: 12, flex: 1, marginLeft: 8 },
   newsPoster: { width: 80, height: 120, borderRadius: 8 },
 });

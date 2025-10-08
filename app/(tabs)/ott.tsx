@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
@@ -12,10 +13,11 @@ interface MovieWithProviders extends Movie {
 }
 
 export default function OTTScreen() {
-  const { language, age } = useProfileStore();
+  const { language, age, darkMode } = useProfileStore();
   const [releases, setReleases] = useState<MovieWithProviders[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOTTReleases();
@@ -37,8 +39,10 @@ export default function OTTScreen() {
       
       const data = await tmdbApi.getRecentOTTReleases(params);
       setReleases(data.results || []);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error fetching OTT releases:', error);
+      setError(error.message || 'Failed to fetch OTT releases');
     } finally {
       setLoading(false);
     }
@@ -59,32 +63,48 @@ export default function OTTScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
         <ActivityIndicator size="large" color="#9333EA" />
-        <Text style={styles.loadingText}>Loading OTT releases...</Text>
+        <Text style={[styles.loadingText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>Loading OTT releases...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+        <Text style={[styles.loadingText, { color: '#EF4444' }]}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (releases.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+        <Text style={[styles.loadingText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>No recent OTT releases found.</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Latest OTT Releases</Text>
-        <Text style={styles.headerSubtitle}>Last 30 days</Text>
+        <Text style={[styles.headerTitle, { color: darkMode ? '#fff' : '#000' }]}>Latest OTT Releases</Text>
+        <Text style={[styles.headerSubtitle, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>Last 30 days</Text>
       </View>
 
       {(language || age) && (
         <View style={styles.filterInfo}>
           {language && (
-            <View style={styles.filterChip}>
+            <View style={[styles.filterChip, { backgroundColor: darkMode ? '#1E1E1E' : '#F3F4F6', borderColor: darkMode ? '#2D2D2D' : '#E5E7EB' }]}>
               <Ionicons name="globe" size={12} color="#9333EA" />
-              <Text style={styles.filterChipText}>{language.toUpperCase()}</Text>
+              <Text style={[styles.filterChipText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>{language.toUpperCase()}</Text>
             </View>
           )}
           {age && (
-            <View style={styles.filterChip}>
+            <View style={[styles.filterChip, { backgroundColor: darkMode ? '#1E1E1E' : '#F3F4F6', borderColor: darkMode ? '#2D2D2D' : '#E5E7EB' }]}>
               <Ionicons name="shield-checkmark" size={12} color="#34D399" />
-              <Text style={styles.filterChipText}>{getAgeLabel()}</Text>
+              <Text style={[styles.filterChipText, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>{getAgeLabel()}</Text>
             </View>
           )}
         </View>
@@ -93,7 +113,7 @@ export default function OTTScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#9333EA" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={darkMode ? '#9333EA' : '#000'} />
         }
       >
         <View style={styles.grid}>
@@ -109,18 +129,18 @@ export default function OTTScreen() {
                   style={styles.poster}
                 />
               ) : (
-                <View style={styles.placeholderPoster}>
+                <View style={[styles.placeholderPoster, { backgroundColor: darkMode ? '#1E1E1E' : '#E5E7EB' }]}>
                   <Ionicons name="film" size={50} color="#6B7280" />
                 </View>
               )}
               <View style={styles.info}>
-                <Text style={styles.title} numberOfLines={2}>{movie.title}</Text>
+                <Text style={[styles.title, { color: darkMode ? '#fff' : '#000' }]} numberOfLines={2}>{movie.title}</Text>
                 <View style={styles.meta}>
                   <View style={styles.rating}>
                     <Ionicons name="star" size={14} color="#FCD34D" />
                     <Text style={styles.ratingText}>{movie.vote_average?.toFixed(1)}</Text>
                   </View>
-                  <Text style={styles.date}>{movie.release_date}</Text>
+                  <Text style={[styles.date, { color: darkMode ? '#6B7280' : '#9CA3AF' }]}>{movie.release_date}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -134,21 +154,21 @@ export default function OTTScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212', paddingTop: 60 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#9CA3AF' },
+  loadingText: { marginTop: 16, fontSize: 16 },
   header: { paddingHorizontal: 16, marginBottom: 16 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: '#9CA3AF' },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
+  headerSubtitle: { fontSize: 14 },
   filterInfo: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1E1E', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4, borderWidth: 1, borderColor: '#2D2D2D' },
-  filterChipText: { color: '#9CA3AF', fontSize: 11, fontWeight: '600' },
+  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4, borderWidth: 1 },
+  filterChipText: { fontSize: 11, fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8 },
   card: { width: '50%', padding: 8 },
   poster: { width: '100%', height: 250, borderRadius: 12 },
-  placeholderPoster: { width: '100%', height: 250, borderRadius: 12, backgroundColor: '#1E1E1E', justifyContent: 'center', alignItems: 'center' },
+  placeholderPoster: { width: '100%', height: 250, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   info: { marginTop: 8 },
-  title: { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 4 },
+  title: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
   meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rating: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { marginLeft: 4, fontSize: 12, color: '#D1D5DB' },
-  date: { fontSize: 11, color: '#6B7280' },
+  date: { fontSize: 11 },
 });

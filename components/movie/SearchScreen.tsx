@@ -1,17 +1,24 @@
-import { View, Text, StyleSheet, TextInput, ScrollView, Image, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, useColorScheme } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 const TMDB_API_KEY = 'YOUR_TMDB_API_KEY';
 
+interface Movie {
+  id: number;
+  title: string;
+  poster_path: string | null;
+}
+
 export default function SearchScreen() {
   const colorScheme = useColorScheme();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const searchMovies = async (searchQuery) => {
+  const searchMovies = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
       return;

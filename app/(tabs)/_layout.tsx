@@ -1,15 +1,18 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useProfileStore } from '../../store/useProfileStore';
 
 export default function TabsLayout() {
+  const { darkMode } = useProfileStore();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#9333EA',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: darkMode ? '#9333EA' : '#000',
+        tabBarInactiveTintColor: darkMode ? '#6B7280' : '#9CA3AF',
         tabBarStyle: {
-          backgroundColor: '#1F2937',
-          borderTopColor: '#374151',
+          backgroundColor: darkMode ? '#1F2937' : '#fff',
+          borderTopColor: darkMode ? '#374151' : '#E5E7EB',
         },
         headerShown: false,
       }}

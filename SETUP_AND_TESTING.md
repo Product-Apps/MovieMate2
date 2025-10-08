@@ -23,10 +23,10 @@ npm start
 ### 3. Clear App Data (for testing onboarding)
 ```bash
 # iOS Simulator
-xcrun simctl uninstall booted com.moviemate.app
+xcrun simctl uninstall booted com.ucworks.moviemate
 
 # Android Emulator
-adb uninstall com.moviemate.app
+adb uninstall com.ucworks.moviemate
 
 # Or simply: Delete app from device and reinstall
 ```

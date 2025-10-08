@@ -19,7 +19,7 @@ jobs:
     name: Build Android Release
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -39,7 +39,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Enhanced Gradle caching
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -51,7 +50,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Cache node_modules separately
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
@@ -60,13 +58,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Install dependencies without legacy-peer-deps
       - name: Install Dependencies
         run: |
           npm ci
           npx expo install --check
 
-      # Clear Metro bundler cache
       - name: Clear Metro Cache
         run: |
           rm -rf $TMPDIR/metro-*
@@ -85,7 +81,6 @@ jobs:
           android.enableJetifier=true
           EOF
 
-      # Generate Native Code with cache clearing
       - name: Generate Android Code
         run: npx expo prebuild --platform android --clean
         env:
@@ -94,42 +89,33 @@ jobs:
       - name: Setup Release Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
-          cat > android/keystore.properties << 'EOF'
-          storeFile=release.keystore
+          cat > android/keystore.properties << EOF
+          storeFile=app/release.keystore
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
+      - name: Validate Keystore
+        run: |
+          keytool -list -v -keystore android/app/release.keystore -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+
       - name: Configure Release Signing
         working-directory: android
         run: |
-          cat >> app/build.gradle << 'EOF'
-          
-          def keystorePropertiesFile = rootProject.file("keystore.properties")
-          def keystoreProperties = new Properties()
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-              
-              android {
-                  signingConfigs {
-                      release {
-                          keyAlias keystoreProperties['keyAlias']
-                          keyPassword keystoreProperties['keyPassword']
-                          storeFile file(keystoreProperties['storeFile'])
-                          storePassword keystoreProperties['storePassword']
-                      }
-                  }
-                  buildTypes {
-                      release {
-                          signingConfig signingConfigs.release
-                      }
-                  }
-              }
-          }
-          EOF
+          sed -i '/signingConfigs {/a \
+              release {\n\
+                  keyAlias keystoreProperties["keyAlias"]\n\
+                  keyPassword keystoreProperties["keyPassword"]\n\
+                  storeFile file(keystoreProperties["storeFile"])\n\
+                  storePassword keystoreProperties["storePassword"]\n\
+              }' app/build.gradle
 
-      # Build with clean cache
+          sed -i '/buildTypes {/a \
+              release {\n\
+                  signingConfig signingConfigs.release\n\
+              }' app/build.gradle
+
       - name: Build Release APK
         working-directory: android
         run: |
@@ -176,7 +162,5 @@ jobs:
           files: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

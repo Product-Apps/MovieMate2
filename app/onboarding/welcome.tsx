@@ -1,5 +1,6 @@
 // app/onboarding/welcome.tsx
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +16,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1a1a2e', '#16213e', '#0f3460']}
         style={styles.backgroundGradient}
@@ -87,7 +88,7 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 

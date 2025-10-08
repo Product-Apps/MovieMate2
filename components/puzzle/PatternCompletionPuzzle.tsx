@@ -1,48 +1,52 @@
-// components/puzzle/PatternCompletionPuzzle.tsx
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { PuzzleOption } from '../../types';
 
 interface PatternCompletionPuzzleProps {
-  onComplete: () => void;
+  options: PuzzleOption[];
+  onSelect: (optionId: string) => void;
+  selectedOption?: string;
 }
 
-export default function PatternCompletionPuzzle({ onComplete }: PatternCompletionPuzzleProps) {
-  const [selected, setSelected] = useState<number[]>([]);
-  const pattern = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-  const handleSelect = (num: number) => {
-    const newSelected = [...selected, num];
-    setSelected(newSelected);
-    if (newSelected.length >= 4) {
-      onComplete();
-    }
-  };
-
+export default function PatternCompletionPuzzle({ options, onSelect, selectedOption }: PatternCompletionPuzzleProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pattern Completion</Text>
-      <Text style={styles.instruction}>Tap 4 squares to complete the pattern</Text>
-      <View style={styles.grid}>
-        {pattern.map((num) => (
-          <TouchableOpacity
-            key={num}
-            style={[styles.box, selected.includes(num) && styles.selectedBox]}
-            onPress={() => handleSelect(num)}
-          >
-            <Text style={styles.boxText}>{num}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {options.map((option) => (
+        <TouchableOpacity
+          key={option.id}
+          style={[styles.optionCard, selectedOption === option.id && styles.selectedCard]}
+          onPress={() => onSelect(option.id)}
+        >
+          <Text style={styles.optionLabel}>{option.label}</Text>
+          <Text style={styles.optionText}>{option.text}</Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, alignItems: 'center', marginTop: 30 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
-  instruction: { fontSize: 14, color: '#9CA3AF', marginBottom: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', width: 280 },
-  box: { width: 80, height: 80, margin: 5, backgroundColor: '#1F2937', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  selectedBox: { backgroundColor: '#9333EA' },
-  boxText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  container: { padding: 20, alignItems: 'center' },
+  optionCard: {
+    width: '100%',
+    padding: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#374151',
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  selectedCard: {
+    borderColor: '#9333EA',
+  },
+  optionLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  optionText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });

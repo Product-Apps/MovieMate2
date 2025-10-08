@@ -1,44 +1,60 @@
-// components/puzzle/ColorHarmonyPuzzle.tsx
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { PuzzleOption } from '../../types';
 
 interface ColorHarmonyPuzzleProps {
-  onComplete: () => void;
+  options: PuzzleOption[];
+  onSelect: (optionId: string) => void;
+  selectedOption?: string;
 }
 
-export default function ColorHarmonyPuzzle({ onComplete }: ColorHarmonyPuzzleProps) {
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
-
-  const handleColorSelect = (color: string) => {
-    const newSelected = [...selectedColors, color];
-    setSelectedColors(newSelected);
-    if (newSelected.length >= 3) {
-      onComplete();
-    }
-  };
-
+export default function ColorHarmonyPuzzle({ options, onSelect, selectedOption }: ColorHarmonyPuzzleProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Color Harmony Puzzle</Text>
-      <Text style={styles.instruction}>Select 3 colors that match your mood</Text>
-      <View style={styles.colorGrid}>
-        {colors.map((color) => (
-          <TouchableOpacity
-            key={color}
-            style={[styles.colorBox, { backgroundColor: color }]}
-            onPress={() => handleColorSelect(color)}
-          />
-        ))}
-      </View>
+      {options.map((option) => (
+        <TouchableOpacity
+          key={option.id}
+          style={[styles.optionCard, selectedOption === option.id && styles.selectedCard]}
+          onPress={() => onSelect(option.id)}
+        >
+          <Text style={styles.optionLabel}>{option.label}</Text>
+          <View style={styles.colorSwatches}>
+            {option.colors?.map((color) => (
+              <View key={color} style={[styles.swatch, { backgroundColor: color }]} />
+            ))}
+          </View>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 20, alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
-  instruction: { fontSize: 14, color: '#9CA3AF', marginBottom: 20 },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  colorBox: { width: 80, height: 80, margin: 10, borderRadius: 10 },
+  optionCard: {
+    width: '100%',
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#374151',
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  selectedCard: {
+    borderColor: '#9333EA',
+  },
+  optionLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  colorSwatches: {
+    flexDirection: 'row',
+  },
+  swatch: {
+    width: 30,
+    height: 30,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
 });

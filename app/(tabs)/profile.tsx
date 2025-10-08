@@ -1,168 +1,228 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { useProfileStore } from '../../store/useProfileStore';
+import { useFavoritesStore } from '../../store/useFavoritesStore';
+import { useWatchlistStore } from '../../store/useWatchlistStore';
+import { useHistoryStore } from '../../store/useHistoryStore';
+import { Card } from '../../components/ui/Card';
+import LanguageSelector from '../../components/movie/LanguageSelector';
+import { notificationService } from '../../utils/notifications';
 
-const languages: string[] = ['Hindi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'English', 'Spanish', 'French'];
-const genres: string[] = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Animation'];
-const streamingServices: string[] = ['Netflix', 'Prime Video', 'Disney+', 'Hotstar', 'HBO Max', 'Apple TV+'];
+const isExpoGo = Constants.appOwnership === 'expo';
+
+interface MoodHistory {
+  mood: string;
+  date: string;
+  movieCount: number;
+}
 
 export default function ProfileScreen() {
-  const colorScheme = useColorScheme();
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('Hindi');
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedStreaming, setSelectedStreaming] = useState<string[]>([]);
-  const [darkMode, setDarkMode] = useState<boolean>(true);
+  const {
+    age, gender, language, darkMode,
+    setAge, setGender, setLanguage, toggleDarkMode,
+    hydrate: hydrateProfile
+  } = useProfileStore();
+
+  const { favorites, hydrate: hydrateFavorites } = useFavoritesStore();
+  const { watchlist } = useWatchlistStore();
+  const { getRecentlyViewed } = useHistoryStore();
+  const [moodHistory, setMoodHistory] = useState<MoodHistory[]>([]);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
-    loadPreferences();
+    console.log("Hydrating profile and favorites");
+    hydrateProfile();
+    hydrateFavorites();
+    loadMoodHistory();
+    checkNotifications();
   }, []);
 
-  const loadPreferences = async (): Promise<void> => {
-    const lang = await AsyncStorage.getItem('language');
-    const genresStr = await AsyncStorage.getItem('genres');
-    const streamingStr = await AsyncStorage.getItem('streaming');
-    
-    if (lang) setSelectedLanguage(lang);
-    if (genresStr) setSelectedGenres(JSON.parse(genresStr));
-    if (streamingStr) setSelectedStreaming(JSON.parse(streamingStr));
+  const checkNotifications = async () => {
+    const enabled = await notificationService.areNotificationsEnabled();
+    setNotificationsEnabled(enabled);
   };
 
-  const savePreferences = async (): Promise<void> => {
-    await AsyncStorage.setItem('language', selectedLanguage);
-    await AsyncStorage.setItem('genres', JSON.stringify(selectedGenres));
-    await AsyncStorage.setItem('streaming', JSON.stringify(selectedStreaming));
-  };
-
-  const toggleGenre = (genre: string): void => {
-    let newGenres = [...selectedGenres];
-    if (newGenres.includes(genre)) {
-      newGenres = newGenres.filter(g => g !== genre);
-    } else {
-      newGenres.push(genre);
+  const toggleNotifications = async (value: boolean) => {
+    // Check if notifications are supported
+    if (!notificationService.isSupported()) {
+      Alert.alert(
+        'Not Available in Expo Go',
+        'Push notifications require a development build. They will work when you build the app for production.',
+        [{ text: 'OK' }]
+      );
+      return;
     }
-    setSelectedGenres(newGenres);
-    savePreferences();
-  };
 
-  const toggleStreaming = (service: string): void => {
-    let newServices = [...selectedStreaming];
-    if (newServices.includes(service)) {
-      newServices = newServices.filter(s => s !== service);
+    if (value) {
+      const granted = await notificationService.requestPermissions();
+      if (granted) {
+        setNotificationsEnabled(true);
+        await notificationService.scheduleWeeklyRecommendations();
+        Alert.alert('Notifications Enabled', 'You\'ll receive weekly movie recommendations!');
+      } else {
+        Alert.alert('Permission Denied', 'Please enable notifications in your device settings');
+      }
     } else {
-      newServices.push(service);
+      await notificationService.cancelAll();
+      await AsyncStorage.setItem('notificationsEnabled', 'false');
+      setNotificationsEnabled(false);
+      Alert.alert('Notifications Disabled', 'You won\'t receive any notifications');
     }
-    setSelectedStreaming(newServices);
-    savePreferences();
   };
 
-  const showPremiumDialog = (): void => {
-    alert('Upgrade to Premium for $1.99/month\n\nFeatures:\n• Ad-free experience\n• Unlimited mood saves\n• Full mood history\n• Advanced recommendations\n• Priority support');
+  const loadMoodHistory = async () => {
+    const history = await AsyncStorage.getItem('moodHistory');
+    setMoodHistory(history ? JSON.parse(history) : []);
   };
+
+  const clearData = async () => {
+    await AsyncStorage.multiRemove(['moodHistory', 'favorites', 'onboardingComplete', 'profile']);
+    hydrateProfile();
+    hydrateFavorites();
+    loadMoodHistory();
+    alert('Data cleared successfully!');
+  };
+
+  const styles = getStyles(true); // Always use dark mode
 
   return (
-    <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#fff' }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={50} color="#fff" />
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Profile</Text>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <TouchableOpacity style={styles.preferenceItem} onPress={() => setLanguageModalVisible(true)}>
+          <Ionicons name="language" size={24} color="#9333EA" />
+          <View style={styles.preferenceText}>
+            <Text style={styles.preferenceLabel}>Language</Text>
+            <Text style={styles.preferenceValue}>{language || 'Not set'}</Text>
           </View>
-          <Text style={[styles.profileName, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-            Movie Enthusiast
-          </Text>
-        </View>
-
-        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-          Language Preference
-        </Text>
-        <View style={styles.chipContainer}>
-          {languages.map(lang => (
-            <TouchableOpacity
-              key={lang}
-              style={[styles.chip, selectedLanguage === lang && { backgroundColor: '#9333EA' }]}
-              onPress={() => {
-                setSelectedLanguage(lang);
-                savePreferences();
-              }}
-            >
-              <Text style={[styles.chipText, selectedLanguage === lang && { color: '#fff' }]}>
-                {lang}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-          Favorite Genres
-        </Text>
-        <View style={styles.chipContainer}>
-          {genres.map(genre => (
-            <TouchableOpacity
-              key={genre}
-              style={[styles.chip, selectedGenres.includes(genre) && { backgroundColor: '#9333EA' }]}
-              onPress={() => toggleGenre(genre)}
-            >
-              <Text style={[styles.chipText, selectedGenres.includes(genre) && { color: '#fff' }]}>
-                {genre}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={[styles.sectionTitle, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-          Streaming Services
-        </Text>
-        <View style={styles.chipContainer}>
-          {streamingServices.map(service => (
-            <TouchableOpacity
-              key={service}
-              style={[styles.chip, selectedStreaming.includes(service) && { backgroundColor: '#9333EA' }]}
-              onPress={() => toggleStreaming(service)}
-            >
-              <Text style={[styles.chipText, selectedStreaming.includes(service) && { color: '#fff' }]}>
-                {service}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.settingsItem}>
-          <Ionicons name="moon" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
-          <Text style={[styles.settingsText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
-            Dark Mode
-          </Text>
-          <TouchableOpacity onPress={() => setDarkMode(!darkMode)}>
-            <View style={[styles.switch, darkMode && styles.switchActive]}>
-              <View style={[styles.switchThumb, darkMode && styles.switchThumbActive]} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.premiumItem} onPress={showPremiumDialog}>
-          <Ionicons name="star" size={24} color="#FCD34D" />
-          <Text style={styles.premiumText}>Upgrade to Premium</Text>
           <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
         </TouchableOpacity>
-      </ScrollView>
-    </View>
+
+        <View style={styles.preferenceItem}>
+          <Ionicons name="person" size={24} color="#9333EA" />
+          <View style={styles.preferenceText}>
+            <Text style={styles.preferenceLabel}>Age</Text>
+            <TextInput
+              value={age ? String(age) : ''}
+              onChangeText={(t) => setAge(t ? Number(t) : null)}
+              keyboardType="number-pad"
+              placeholder="Enter age"
+              placeholderTextColor="#9CA3AF"
+              style={styles.textInput}
+            />
+          </View>
+        </View>
+
+        <View style={styles.preferenceItem}>
+          <Ionicons name="male-female" size={24} color="#9333EA" />
+          <View style={styles.preferenceText}>
+            <Text style={styles.preferenceLabel}>Gender</Text>
+            <View style={{ flexDirection: 'row' }}>
+              {(['male', 'female', 'other'] as const).map((g) => (
+                <TouchableOpacity key={g} onPress={() => setGender(g)} style={[styles.genderButton, gender === g && styles.genderButtonSelected]}>
+                  <Text style={styles.genderButtonText}>{g.charAt(0).toUpperCase() + g.slice(1)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {!isExpoGo && (
+          <View style={styles.preferenceItem}>
+            <Ionicons name="notifications" size={24} color="#9333EA" />
+            <View style={styles.preferenceText}>
+              <Text style={styles.preferenceLabel}>Push Notifications</Text>
+              <Text style={styles.preferenceSubtext}>Weekly recommendations</Text>
+            </View>
+            <Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={notificationsEnabled ? "#f5dd4b" : "#f4f3f4"} />
+          </View>
+        )}
+      </Card>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Statistics</Text>
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Ionicons name="heart" size={30} color="#EF4444" />
+            <Text style={styles.statNumber}>{favorites.length}</Text>
+            <Text style={styles.statLabel}>Favorites</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="bookmark" size={30} color="#9333EA" />
+            <Text style={styles.statNumber}>{watchlist.length}</Text>
+            <Text style={styles.statLabel}>Watchlist</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="time" size={30} color="#34D399" />
+            <Text style={styles.statNumber}>{getRecentlyViewed(50).length}</Text>
+            <Text style={styles.statLabel}>Viewed</Text>
+          </View>
+        </View>
+      </Card>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Recent Mood History</Text>
+        {moodHistory.slice(0, 3).map((item, index) => (
+          <View key={index} style={styles.historyItem}>
+            <View style={styles.historyMood}>
+              <Text style={styles.historyMoodText}>{item.mood}</Text>
+            </View>
+            <View style={styles.historyDetails}>
+              <Text style={styles.historyDate}>{item.date}</Text>
+              <Text style={styles.historyMovies}>{item.movieCount} movies</Text>
+            </View>
+          </View>
+        ))}
+      </Card>
+
+      <TouchableOpacity style={styles.clearButton} onPress={clearData}>
+        <Text style={styles.clearButtonText}>Clear All Data</Text>
+      </TouchableOpacity>
+
+      <LanguageSelector
+        visible={languageModalVisible}
+        selectedLanguages={language ? [language] : []}
+        onLanguagesChange={(languages) => {
+          if (languages.length > 0) {
+            setLanguage(languages[0]);
+          }
+        }}
+        onClose={() => setLanguageModalVisible(false)}
+        singleSelect={true}  // Enable single selection mode
+      />
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 16 },
-  profileHeader: { alignItems: 'center', marginBottom: 30 },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#9333EA', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  profileName: { fontSize: 22, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 25, marginBottom: 10 },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: { backgroundColor: '#374151', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, marginBottom: 8 },
-  chipText: { color: '#D1D5DB', fontSize: 14 },
-  settingsItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#374151', marginTop: 20 },
-  settingsText: { flex: 1, marginLeft: 15, fontSize: 16 },
-  switch: { width: 50, height: 30, borderRadius: 15, backgroundColor: '#374151', justifyContent: 'center', padding: 3 },
-  switchActive: { backgroundColor: '#9333EA' },
-  switchThumb: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff' },
-  switchThumbActive: { alignSelf: 'flex-end' },
-  premiumItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#374151' },
-  premiumText: { flex: 1, marginLeft: 15, fontSize: 16, color: '#FCD34D', fontWeight: '600' },
+const getStyles = (darkMode: boolean) => StyleSheet.create({
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 16, backgroundColor: darkMode ? '#121212' : '#F3F4F6' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 30, color: darkMode ? '#fff' : '#000' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: darkMode ? '#fff' : '#000' },
+  preferenceItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: darkMode ? '#374151' : '#E5E7EB' },
+  preferenceText: { flex: 1, marginLeft: 15 },
+  preferenceLabel: { fontSize: 16, color: '#9CA3AF' },
+  preferenceSubtext: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  preferenceValue: { fontSize: 16, fontWeight: 'bold', color: darkMode ? '#fff' : '#000', marginTop: 2 },
+  textInput: { color: darkMode ? '#fff' : '#000', fontSize: 16, minWidth: 60 },
+  genderButton: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#374151', borderRadius: 16, marginRight: 8 },
+  genderButtonSelected: { backgroundColor: '#9333EA' },
+  genderButtonText: { color: '#fff', fontWeight: '600' },
+  statsContainer: { flexDirection: 'row', justifyContent: 'space-around' },
+  statItem: { alignItems: 'center' },
+  statNumber: { fontSize: 24, fontWeight: 'bold', color: darkMode ? '#fff' : '#000', marginVertical: 5 },
+  statLabel: { fontSize: 14, color: '#9CA3AF' },
+  historyItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: darkMode ? '#374151' : '#E5E7EB' },
+  historyMood: { backgroundColor: '#9333EA', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
+  historyMoodText: { color: '#fff', fontWeight: 'bold', textTransform: 'capitalize' },
+  historyDetails: { flex: 1, marginLeft: 15 },
+  historyDate: { fontSize: 14, color: '#9CA3AF' },
+  historyMovies: { fontSize: 12, color: '#6B7280' },
+  clearButton: { backgroundColor: '#EF4444', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 20, marginBottom: 40 },
+  clearButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });

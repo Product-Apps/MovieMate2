@@ -1,14 +1,14 @@
 // components/movie/LanguageSelector.tsx
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Modal } from 'react-native';
-import { Language } from '@/types/movie';
-import { LANGUAGES } from '@/constants/Languages';
+import { LANGUAGES } from '../../constants/Languages';
 
 interface LanguageSelectorProps {
   selectedLanguages: string[];
   onLanguagesChange: (languages: string[]) => void;
   visible: boolean;
   onClose: () => void;
+  singleSelect?: boolean; // New prop for single selection mode
 }
 
 export default function LanguageSelector({
@@ -16,12 +16,20 @@ export default function LanguageSelector({
   onLanguagesChange,
   visible,
   onClose,
+  singleSelect = false, // Default to multiple selection
 }: LanguageSelectorProps) {
   const toggleLanguage = (languageCode: string) => {
-    if (selectedLanguages.includes(languageCode)) {
-      onLanguagesChange(selectedLanguages.filter((l) => l !== languageCode));
+    if (singleSelect) {
+      // Single selection mode: select only this language and close
+      onLanguagesChange([languageCode]);
+      onClose();
     } else {
-      onLanguagesChange([...selectedLanguages, languageCode]);
+      // Multiple selection mode: toggle selection
+      if (selectedLanguages.includes(languageCode)) {
+        onLanguagesChange(selectedLanguages.filter((l) => l !== languageCode));
+      } else {
+        onLanguagesChange([...selectedLanguages, languageCode]);
+      }
     }
   };
 
@@ -42,20 +50,24 @@ export default function LanguageSelector({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Select Languages</Text>
+          <Text style={styles.title}>
+            {singleSelect ? 'Select Language' : 'Select Languages'}
+          </Text>
           <Pressable onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Done</Text>
           </Pressable>
         </View>
 
-        <View style={styles.actions}>
-          <Pressable onPress={selectAll} style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>Select All</Text>
-          </Pressable>
-          <Pressable onPress={clearAll} style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>Clear All</Text>
-          </Pressable>
-        </View>
+        {!singleSelect && (
+          <View style={styles.actions}>
+            <Pressable onPress={selectAll} style={styles.actionButton}>
+              <Text style={styles.actionButtonText}>Select All</Text>
+            </Pressable>
+            <Pressable onPress={clearAll} style={styles.actionButton}>
+              <Text style={styles.actionButtonText}>Clear All</Text>
+            </Pressable>
+          </View>
+        )}
 
         <ScrollView style={styles.languagesList} showsVerticalScrollIndicator={false}>
           {LANGUAGES.map((language) => {

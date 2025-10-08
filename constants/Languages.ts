@@ -1,5 +1,5 @@
 // constants/Languages.ts
-import { Language } from '@/types/movie';
+import { Language } from '../types';
 
 export const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },

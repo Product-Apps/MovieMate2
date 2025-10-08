@@ -31,6 +31,9 @@
     "plugins": [
       "expo-router"
     ],
+    "extra": {
+      "tmdbToken": "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmNTIzMmU5OThlMzI4ZjEzOGY1YzFjZWFmZDczZGI2YSIsIm5iZiI6MTc1OTc3NDIwMS44MTYsInN1YiI6IjY4ZTQwNWY5YzNmNGE3MzJiZWJkOWNjYiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.yJchCssBDkdOq2xYJ89gx6fd23s3ulOWlfSfv4MM0Rg"
+    },
     "experiments": {
       "typedRoutes": true
     }

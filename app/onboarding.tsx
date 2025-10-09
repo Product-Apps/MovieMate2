@@ -1,65 +1,36 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, TextInput } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useProfileStore } from '../store/useProfileStore'
-import { useMoodStore } from '../store/useMoodStore'
+import { useProfileStore } from '../store/useProfileStore';
+import { usePreferencesStore } from '../store/usePreferencesStore';
+import { LANGUAGES } from '../constants/Languages';
 
-const languages: string[] = [
-  'Hindi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Bengali', 
-  'Marathi', 'Gujarati', 'Punjabi', 'English', 'Spanish', 'French'
-];
-
-const words: string[] = [
-  'Adventure', 'Calm', 'Exciting', 'Romantic', 'Thrilling', 
-  'Funny', 'Mysterious', 'Epic', 'Dramatic', 'Light-hearted'
-];
-
-const moodColors: string[] = [
-  '#3B82F6', '#9333EA', '#F97316', '#EF4444', 
-  '#10B981', '#EC4899', '#14B8A6', '#F59E0B'
-];
 
 export default function OnboardingScreen() {
-  const colorScheme = useColorScheme();
-  const [selectedLanguage, setSelectedLanguage] = useState('Hindi');
-  const [selectedWords, setSelectedWords] = useState<string[]>([]);
-  const [selectedColor, setSelectedColor] = useState('#3B82F6');
+  const { language, setName: setProfileName, setAge: setProfileAge, setGender: setProfileGender, setLanguage: setProfileLanguage, hydrate, darkMode } = useProfileStore();
+  const { completeOnboarding } = usePreferencesStore();
+  const [selectedLanguage, setSelectedLanguage] = useState(language || 'te');
+  const [name, setName] = useState('');
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>('');
-  const { setAge: setProfileAge, setGender: setProfileGender, setLanguage: setProfileLanguage, hydrate } = useProfileStore()
-  const { setMood } = useMoodStore()
 
   useEffect(() => {
     hydrate()
   }, [])
 
-  const toggleWord = (word: string): void => {
-    if (selectedWords.includes(word)) {
-      setSelectedWords(selectedWords.filter(w => w !== word));
-    } else {
-      setSelectedWords([...selectedWords, word]);
+  useEffect(() => {
+    if (language) {
+      setSelectedLanguage(language);
     }
-  };
+  }, [language])
 
-  const calculateMood = (): string => {
-    if (selectedWords.includes('Calm') || selectedWords.includes('Romantic')) {
-      return 'relaxed';
-    } else if (selectedWords.includes('Exciting') || selectedWords.includes('Thrilling')) {
-      return 'excited';
-    } else if (selectedWords.includes('Funny')) {
-      return 'happy';
-    } else if (selectedWords.includes('Mysterious')) {
-      return 'thoughtful';
-    } else {
-      return 'adventurous';
-    }
-  };
 
   const handleGetStarted = async (): Promise<void> => {
-    if (selectedWords.length === 0) {
-      alert('Please select at least one word');
+    if (!name.trim()) {
+      alert('Please enter your name');
       return;
     }
     const numericAge = parseInt(age, 10)
@@ -72,77 +43,54 @@ export default function OnboardingScreen() {
       return
     }
     
-    const mood = calculateMood();
-    await AsyncStorage.setItem('language', selectedLanguage);
-    await AsyncStorage.setItem('mood', mood);
-    await AsyncStorage.setItem('selectedWords', JSON.stringify(selectedWords));
-    await AsyncStorage.setItem('onboardingComplete', 'true');
-    setProfileAge(numericAge)
-    setProfileGender(gender as any)
-    setProfileLanguage(selectedLanguage)
-    setMood(mood)
-    
-    router.replace('/(tabs)');
+    completeOnboarding();
+    setProfileName(name);
+    setProfileAge(numericAge);
+    setProfileGender(gender as any);
+    setProfileLanguage(selectedLanguage);
+
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: darkMode ? '#000' : '#fff' }]}>
       <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>Welcome to MovieMate</Text>
-        <Text style={styles.subtitle}>Find your perfect movie match!</Text>
+        <Text style={[styles.title, { color: darkMode ? '#fff' : '#000' }]}>Welcome to MovieMate</Text>
+        <Text style={[styles.subtitle, { color: darkMode ? '#9CA3AF' : '#6B7280' }]}>Find your perfect movie match!</Text>
 
-        <Text style={styles.sectionTitle}>Select Your Language:</Text>
+        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>Select Your Language:</Text>
         <ScrollView horizontal style={styles.chipScroll}>
-          {languages.map((lang) => (
+          {LANGUAGES.map((lang) => (
             <TouchableOpacity
-              key={lang}
-              style={[styles.chip, selectedLanguage === lang && { backgroundColor: '#9333EA' }]}
-              onPress={() => setSelectedLanguage(lang)}
+              key={lang.code}
+              style={[styles.chip, selectedLanguage === lang.code && { backgroundColor: '#9333EA' }]}
+              onPress={() => setSelectedLanguage(lang.code)}
             >
-              <Text style={styles.chipText}>{lang}</Text>
+              <Text style={styles.chipText}>{lang.flag} {lang.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Text style={styles.sectionTitle}>Pick Words That Resonate:</Text>
-        <View style={styles.wordContainer}>
-          {words.map((word) => (
-            <TouchableOpacity
-              key={word}
-              style={[styles.wordChip, selectedWords.includes(word) && { backgroundColor: '#9333EA' }]}
-              onPress={() => toggleWord(word)}
-            >
-              <Text style={styles.chipText}>{word}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
-        <Text style={styles.sectionTitle}>Choose Your Mood Color:</Text>
-        <View style={styles.colorContainer}>
-          {moodColors.map((color) => (
-            <TouchableOpacity
-              key={color}
-              style={[
-                styles.colorCircle,
-                { backgroundColor: color },
-                selectedColor === color && styles.selectedColor
-              ]}
-              onPress={() => setSelectedColor(color)}
-            />
-          ))}
-        </View>
+        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>Your Name</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter your name"
+          placeholderTextColor="#9CA3AF"
+          style={[styles.input, { backgroundColor: darkMode ? '#374151' : '#F3F4F6', color: darkMode ? '#fff' : '#000' }]}
+        />
 
-        <Text style={styles.sectionTitle}>Your Age</Text>
+        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>Your Age</Text>
         <TextInput
           value={age}
           keyboardType="number-pad"
           onChangeText={setAge}
           placeholder="Enter age"
           placeholderTextColor="#9CA3AF"
-          style={styles.input}
+          style={[styles.input, { backgroundColor: darkMode ? '#374151' : '#F3F4F6', color: darkMode ? '#fff' : '#000' }]}
         />
 
-        <Text style={styles.sectionTitle}>Gender</Text>
+        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>Gender</Text>
         <View style={styles.wordContainer}>
           {(['male','female','other'] as const).map((g) => (
             <TouchableOpacity key={g} style={[styles.wordChip, gender === g && { backgroundColor: '#9333EA' }]} onPress={() => setGender(g)}>

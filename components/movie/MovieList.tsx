@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavoritesStore } from '../../store/useFavoritesStore';
 import { Movie } from '../../types';
 
-const MovieCard = ({ movie }: { movie: Movie }) => {
+const MovieCard = ({ movie, darkMode }: { movie: Movie; darkMode?: boolean }) => {
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const isFav = isFavorite(movie.id);
 
@@ -27,26 +28,33 @@ const MovieCard = ({ movie }: { movie: Movie }) => {
           color={isFav ? '#EF4444' : '#fff'}
         />
       </TouchableOpacity>
-      <Text
-        style={styles.movieTitle}
-        numberOfLines={2}
-        ellipsizeMode="tail"
-      >
-        {movie.title}
-      </Text>
+      <View style={styles.movieInfo}>
+        <Text
+          style={[styles.movieTitle, { color: darkMode ? '#fff' : '#000' }]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {movie.title}
+        </Text>
+        {movie.release_date && (
+          <Text style={[styles.movieYear, { color: darkMode ? '#9CA3AF' : '#666' }]}>
+            {new Date(movie.release_date).getFullYear()}
+          </Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
 
-export const MovieList = ({ title, movies }: { title: string; movies: Movie[] }) => {
+export const MovieList = ({ title, movies, darkMode }: { title: string; movies: Movie[]; darkMode?: boolean }) => {
   if (!movies || movies.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {movies.map((movie, index) => (
-          <MovieCard key={`${movie.id}-${movie.title}-${index}`} movie={movie} />
+          <MovieCard key={`${movie.id}-${movie.title}-${index}`} movie={movie} darkMode={darkMode} />
         ))}
       </ScrollView>
     </View>
@@ -62,7 +70,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#fff',
   },
   movieCard: {
     width: 150,
@@ -82,10 +89,16 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
-  movieTitle: {
+  movieInfo: {
     marginTop: 5,
+  },
+  movieTitle: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#fff',
+    marginBottom: 2,
+  },
+  movieYear: {
+    fontSize: 10,
+    fontWeight: '400',
   },
 });

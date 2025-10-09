@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useColorScheme, Linking, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, useColorScheme, Linking, Alert, ActivityIndicator, Platform } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -129,10 +130,10 @@ export default function MovieDetailScreen() {
 
   const handleFavoriteToggle = () => {
     if (!movie) return;
-    toggleFavorite(movie);
+    toggleFavorite(movie.id);
     if (!isFavorite(movie.id)) {
       const genreIds = movie.genres?.map((g) => g.id) || movie.genre_ids || [];
-      trackFavorite(movie.id, genreIds);
+      trackFavorite(genreIds);
     }
   };
 

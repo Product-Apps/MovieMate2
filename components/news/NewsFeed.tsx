@@ -16,7 +16,7 @@ interface NewsItem {
   original_language: string;
 }
 
-export default function NewsFeed() {
+export default function NewsFeed({ darkMode }: { darkMode?: boolean }) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { language, age } = useProfileStore();

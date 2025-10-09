@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MovieList } from '../../components/movie/MovieList';
@@ -35,10 +36,41 @@ export default function RecommendationsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {sections.map(({ key, title, data }) => (
           <View key={key} style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>{title}</Text>
             {data.loading ? (
               <Text style={styles.loadingText}>Loading…</Text>
             ) : data.movies.length ? (
-              <MovieList key={key} title={title} movies={data.movies} />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {data.movies.map((movie, index) => (
+                  <View key={`${movie.id}-${index}`} style={styles.movieCard}>
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/movie/[id]', params: { id: movie.id } })}>
+                      <View style={styles.posterContainer}>
+                        {movie.poster_path ? (
+                          <Image
+                            source={{ uri: `https://image.tmdb.org/t/p/w500${movie.poster_path}` }}
+                            style={styles.moviePoster}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.noPoster}>
+                            <Text style={styles.noPosterText}>No Image</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.movieInfo}>
+                        <Text style={styles.movieTitle} numberOfLines={2}>
+                          {movie.title}
+                        </Text>
+                        {movie.release_date && (
+                          <Text style={styles.movieYear}>
+                            {new Date(movie.release_date).getFullYear()}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
             ) : (
               <Text style={styles.emptyText}>No movies found for this period</Text>
             )}
@@ -72,23 +104,74 @@ const styles = StyleSheet.create({
   },
   sectionContainer: {
     marginBottom: 30,
-    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   loadingText: {
     color: '#999',
     fontStyle: 'italic',
     textAlign: 'center',
+    paddingHorizontal: 16,
   },
   emptyText: {
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
+    paddingHorizontal: 16,
+  },
+  movieCard: {
+    width: 150,
+    marginLeft: 16,
+  },
+  posterContainer: {
+    width: 150,
+    height: 225,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1E1E1E',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2D2D2D',
+  },
+  posterPlaceholder: {
+    fontSize: 48,
+  },
+  moviePoster: {
+    width: '100%',
+    height: '100%',
+  },
+  noPoster: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2D2D2D',
+  },
+  noPosterText: {
+    color: '#666',
+    fontSize: 12,
+  },
+  movieInfo: {
+    marginTop: 8,
+  },
+  movieTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  movieYear: {
+    color: '#9CA3AF',
+    fontSize: 11,
   },
   bottomPadding: {
     height: 30,

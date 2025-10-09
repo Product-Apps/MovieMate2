@@ -1,6 +1,7 @@
 // components/movie/LanguageSelector.tsx
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Modal } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { LANGUAGES } from '../../constants/Languages';
 
 interface LanguageSelectorProps {

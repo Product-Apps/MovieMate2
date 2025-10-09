@@ -17,7 +17,7 @@ import { tmdbApi } from '../../api/tmdb';
 import { useMoodStore } from '../../store/useMoodStore';
 
 export default function HomeScreen() {
-  const { language, age, hydrate: hydrateProfile } = useProfileStore();
+  const { language, age, darkMode, hydrate: hydrateProfile } = useProfileStore();
   const { favorites, hydrate: hydrateFavorites } = useFavoritesStore();
   const { getRecentlyViewed, hydrate: hydrateHistory } = useHistoryStore();
   const { watchlist, hydrate: hydrateWatchlist } = useWatchlistStore();
@@ -177,18 +177,18 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>MovieMate</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#F9FAFB' }]}>
+      <View style={[styles.header, { backgroundColor: darkMode ? '#1E1E1E' : '#fff' }]}>
+        <Text style={[styles.headerTitle, { color: darkMode ? '#fff' : '#000' }]}>MovieMate</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
-          <Ionicons name="search" size={24} color="#fff" />
+          <Ionicons name="search" size={24} color={darkMode ? '#fff' : '#000'} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={darkMode ? '#fff' : '#000'} />
         }
       >
         <TouchableOpacity style={styles.moodBanner} onPress={() => router.push('/(tabs)/mood')}>
@@ -206,25 +206,25 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {recentlyViewedMovies.length > 0 && (
-          <MovieList key="continue-exploring" title="Continue Exploring" movies={recentlyViewedMovies} />
+          <MovieList key="continue-exploring" title="Continue Exploring" movies={recentlyViewedMovies} darkMode={darkMode} />
         )}
         {watchlistMovies.length > 0 && (
-          <MovieList key="watchlist" title="Your Watchlist" movies={watchlistMovies} />
+          <MovieList key="watchlist" title="Your Watchlist" movies={watchlistMovies} darkMode={darkMode} />
         )}
         {favoriteMovies.length > 0 && (
-          <MovieList key="favorites" title="Your Favorites" movies={favoriteMovies} />
+          <MovieList key="favorites" title="Your Favorites" movies={favoriteMovies} darkMode={darkMode} />
         )}
         {personalizedMovies.length > 0 && (
-          <MovieList key="personalized" title="Because You Watched" movies={personalizedMovies} />
+          <MovieList key="personalized" title="Because You Watched" movies={personalizedMovies} darkMode={darkMode} />
         )}
-        <MovieList key="recommended" title="Recommended for You" movies={recommendedMovies} />
+        <MovieList key="recommended" title="Recommended for You" movies={recommendedMovies} darkMode={darkMode} />
         {trendingTVShows.length > 0 && (
-          <TVShowList key="trending-tv" title="Trending TV Shows" shows={trendingTVShows} />
+          <TVShowList key="trending-tv" title="Trending TV Shows" shows={trendingTVShows} darkMode={darkMode} />
         )}
-        <MovieList key="trending-movies" title="Trending Movies" movies={trendingMovies} />
+        <MovieList key="trending-movies" title="Trending Movies" movies={trendingMovies} darkMode={darkMode} />
         
         <View style={styles.newsSection}>
-          <NewsFeed />
+          <NewsFeed darkMode={darkMode} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -243,12 +243,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 10,
-    backgroundColor: '#1E1E1E',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
   },
   moodBanner: {
     flexDirection: 'row',

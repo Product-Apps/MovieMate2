@@ -70,7 +70,7 @@ export default function WelcomeScreen() {
 
           <TouchableOpacity 
             style={styles.button}
-            onPress={() => router.push('/onboarding/preferences')}
+            onPress={() => router.push('/onboarding')}
           >
             <LinearGradient
               colors={['#e94560', '#9333EA']}

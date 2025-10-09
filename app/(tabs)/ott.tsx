@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
@@ -12,7 +13,7 @@ interface MovieWithProviders extends Movie {
 }
 
 export default function OTTScreen() {
-  const { language, age } = useProfileStore();
+  const { language, age, darkMode } = useProfileStore();
   const [releases, setReleases] = useState<MovieWithProviders[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

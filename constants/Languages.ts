@@ -3,11 +3,15 @@ import { Language } from '../types';
 
 export const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
   { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
   { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
-  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
   { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
   { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', flag: '🇮🇳' },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+  { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸' },
   { code: 'fr', name: 'French', flag: '🇫🇷' },
   { code: 'de', name: 'German', flag: '🇩🇪' },

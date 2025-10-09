@@ -11,9 +11,10 @@ function getAuthToken(): string | undefined {
 }
 
 function getHeaders() {
-  const token = getAuthToken()
+  const token = getAuthToken();
   if (!token) {
-    throw new Error('TMDB token is not configured. Add extra.tmdbToken in app.json')
+    // This will now crash the app with a clear message, which is better than silent failures.
+    throw new Error('TMDB token is not configured. Add `extra.tmdbToken` in app.json');
   }
   return {
     Authorization: `Bearer ${token}`,

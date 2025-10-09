@@ -5,6 +5,7 @@ import { useMoodStore } from '../../store/useMoodStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useCallback } from 'react';
 import LanguageSelector from '../../components/movie/LanguageSelector';
+import QuickMoodPicker from '../../components/mood/QuickMoodPicker';
 import { LANGUAGES } from '../../constants/Languages';
 
 // Enhanced mood detection questions
@@ -67,12 +68,13 @@ const MOOD_RESULTS = {
 export default function MoodScreen() {
   const router = useRouter();
   const { mood, setMood } = useMoodStore();
-  const [mode, setMode] = useState<'select' | 'questionnaire'>('select');
+  const [mode, setMode] = useState<'select' | 'questionnaire' | 'quickpick'>('select');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['en']);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Reset questionnaire when user returns to this screen
   useFocusEffect(
@@ -189,6 +191,32 @@ export default function MoodScreen() {
     return `🌐 ${selectedLanguages.length} Languages Selected`;
   };
 
+  const scrollToMoodGrid = () => {
+    setMode('quickpick');
+  };
+
+  // Quick Pick Mode
+  if (mode === 'quickpick') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.questionHeader}>
+          <TouchableOpacity onPress={() => setMode('select')} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Quick Pick</Text>
+        </View>
+        
+        <QuickMoodPicker
+          moods={Object.fromEntries(
+            Object.entries(MOOD_RESULTS).map(([id, data]) => [id, { id, ...data }])
+          )}
+          onSelect={handleDirectMoodSelect}
+          selectedMood={mood}
+        />
+      </SafeAreaView>
+    );
+  }
+
   // Questionnaire Mode
   if (mode === 'questionnaire') {
     const question = MOOD_QUESTIONS[currentQuestion];
@@ -232,7 +260,7 @@ export default function MoodScreen() {
   // Selection Mode
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView ref={scrollViewRef}>
       <View style={styles.header}>
         <Text style={styles.title}>How are you feeling?</Text>
         <Text style={styles.subtitle}>Choose how you want to find your perfect movie</Text>
@@ -282,7 +310,7 @@ export default function MoodScreen() {
 
         <TouchableOpacity 
           style={styles.modeCard}
-          onPress={() => {/* Show direct mood grid */}}
+          onPress={scrollToMoodGrid}
           activeOpacity={0.8}
         >
           <View style={styles.modeIconContainer}>
@@ -484,6 +512,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40
   },
   progressBarContainer: {
     flex: 1,
